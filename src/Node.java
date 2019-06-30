@@ -1,9 +1,12 @@
-
+/**
+ * Used to store data about states as the search algorithm progresses.
+ */
 public class Node {
 
+    int x,y;
     int g;
-    int h;
-    int f;
+    double h;
+    double f;
     Node tree;
     int search;
 
@@ -11,7 +14,9 @@ public class Node {
         search = 0;
     }
 
-    public Node(int g, int h, Node tree) {
+    public Node(int x, int y, int g, double h, Node tree) {
+        this.x = x;
+        this.y = y;
         this.g = g;
         this.h = h;
         this.f = g + h;

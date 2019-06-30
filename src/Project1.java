@@ -1,10 +1,12 @@
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Random;
-import java.math.*;
+import java.util.PriorityQueue;
 
 public class Project1 {
 
     public static void main(String[] args){
-        boolean[][] grid = genGrid(5, 0.25f);
+        Integer[][] grid = genGrid(5, 0.25f, true);
         printGrid(grid);
     }
 
@@ -15,17 +17,18 @@ public class Project1 {
      * Blocked spaces are set to true; open spaces are set to false.
      * @param dim The dimensions of the gridworld.
      * @param p The probability of any generated cell initializing as blocked.
+     * @param visibility Whether or not the gridworld is fully visible to the agent.
      * @return The 2D boolean array gridworld object.
      */
-    public static boolean[][] genGrid(int dim, float p){
-        boolean[][] gridworld = new boolean[dim][dim];
+    public static Integer[][] genGrid(int dim, float p, boolean visibility){
+        Integer[][] gridworld = new Integer[dim][dim];
         for (int i=0; i<dim; i++){
             for (int j=0; j<dim; j++){
-                gridworld[i][j] = new Random().nextDouble() <= p;
+                gridworld[i][j] = new Random().nextDouble() <= p ? -1 : (visibility? Integer.MAX_VALUE : 0);
             }
         }
-        gridworld[0][0] = false;
-        gridworld[dim-1][dim-1] = false;
+        gridworld[0][0] = 0;
+        gridworld[dim-1][dim-1] = Integer.MAX_VALUE;
         return gridworld;
     }
 
@@ -33,10 +36,10 @@ public class Project1 {
      * Prints a character graphic representation of the specified gridworld.
      * @param gridworld
      */
-    public static void printGrid(boolean[][] gridworld){
+    public static void printGrid(Integer[][] gridworld){
         for (int i=0; i<gridworld.length; i++){
             for (int j=0; j<gridworld.length; j++){
-                if(gridworld[i][j]){
+                if(gridworld[i][j] == -1){
                     System.out.print("B ");
                 } else{
                     System.out.print("o ");
@@ -47,14 +50,45 @@ public class Project1 {
     }
 
     /**
-     * An A* algorithm implemented utilizing a min binary heap structure.
-     * This method assumes all gridworld spaces are available to see by
-     * the agent.
+     * An A* search algorithm implemented utilizing a min binary heap structure.
+     *
      * @param gridworld The gridworld to apply the algorithm to.
+     * @param heuristic The heuristic formula to be used when searching.
+     * @param repeated Whether this method is being used in A* repeated or not.
      * @return True if solvable, false if not.
      */
-    public static boolean aStarSearch(boolean[][] gridworld){
-        
+    public static boolean aStarSearch(Integer[][] gridworld, Type heuristic, boolean repeated){
+        int dim = gridworld.length-1;
+        Node start = new Node(0, 0, 0, heuristicCalc(heuristic, 0,0,
+                dim, dim), null);
+        Comparator<Node> nodeComparator = new NodeComparator();
+        PriorityQueue<Node> openList = new PriorityQueue<Node>(nodeComparator);
+        ArrayList<Node> closedList = new ArrayList<Node>();
+
+        // Put this section of code into the A* repeated method and remove the repeated argument.
+        if(repeated){
+            //initialize g values in gridworld to 0.
+            for (int i=0; i<dim+1; i++){
+                for (int j=0; j<dim+1; j++){
+                    gridworld[i][j] = (gridworld[i][j] == -1) ? -1 : 0;
+                }
+            }
+        }
+
+        openList.add(start);
+        while(openList.size() != 0) {
+            Node curr = openList.poll();
+            if (curr.x == dim && curr.y == dim) return true; //change to node later
+            closedList.add(curr);
+            // Check if agent can move up and wont be out of bounds or blocked.
+            if(curr.y-1 >= 0) {
+                if(gridworld[curr.x][curr.y-1] != -1) {
+                    //Node child = new Node(curr.x, curr.y-1, curr.g+1);
+                }
+            }
+
+        }
+        return false;
     }
 
     /**
