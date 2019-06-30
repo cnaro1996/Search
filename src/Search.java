@@ -3,7 +3,7 @@ import java.util.Comparator;
 import java.util.Random;
 import java.util.PriorityQueue;
 
-public class Project1 {
+public class Search {
 
     public static void main(String[] args){
         Integer[][] grid = genGrid(5, 0.25f, true);
