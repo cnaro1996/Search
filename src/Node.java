@@ -24,6 +24,26 @@ public class Node {
         search = 0;
     }
 
+    // We compare Nodes by their coordinates. The equals method must be modified
+    // for proper comparisons in data structures.
+    @Override
+    public boolean equals(Object object) {
+        boolean isEqual = false;
+
+        if(object != null && object instanceof Node) {
+            isEqual = (this.x == ((Node) object).x && this.y == ((Node) object).y);
+        }
+        return isEqual;
+    }
+
+    /* If I change the closedList to a hashmap, this method will need to be implemented.
+    @Override
+    public int hashCode() {
+
+    }
+    */
+
+
     public String toString(){
         return "";
     }

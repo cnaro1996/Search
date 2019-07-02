@@ -85,7 +85,14 @@ public class Search {
             // Check if agent can move up and wont be out of bounds or blocked.
             if(curr.y-1 >= 0) {
                 if(gridworld[curr.x][curr.y-1] != -1) {
-                    //Node child = new Node(curr.x, curr.y-1, curr.g+1);
+                    Node child = new Node(curr.x, curr.y-1, curr.g+1,
+                            heuristicCalc(Type.EUCLIDIAN, curr.x, curr.y-1, dim, dim), curr);
+                    // Check if the child is in the openList or the closedList.
+                    if(!closedList.contains(child) && !openList.contains(child)) {
+                        openList.add(child);
+                        continue;
+                    // Check if the child is in the openList with a higher path cost.
+                    } //else if(openList.contains(child) && child.g > openList.)
                 }
             }
 
