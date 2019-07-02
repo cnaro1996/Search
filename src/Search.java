@@ -14,7 +14,7 @@ public class Search {
      * Generates a gridworld object of size dim x dim. index 0,0 is the start
      * state and index dim-1, dim-1 is the goal state.
      *
-     * Blocked spaces are set to true; open spaces are set to false.
+     * Blocked spaces are set to -1; open spaces are either infinity or 0.
      * @param dim The dimensions of the gridworld.
      * @param p The probability of any generated cell initializing as blocked.
      * @param visibility Whether or not the gridworld is fully visible to the agent.
@@ -78,8 +78,10 @@ public class Search {
         openList.add(start);
         while(openList.size() != 0) {
             Node curr = openList.poll();
-            if (curr.x == dim && curr.y == dim) return true; //change to node later
+            if (curr.x == dim && curr.y == dim) return true; //change to node later, also change to g value comp
+            // Expand curr
             closedList.add(curr);
+            // Actions
             // Check if agent can move up and wont be out of bounds or blocked.
             if(curr.y-1 >= 0) {
                 if(gridworld[curr.x][curr.y-1] != -1) {
