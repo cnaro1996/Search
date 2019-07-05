@@ -1,3 +1,5 @@
+import com.sun.org.apache.bcel.internal.generic.SWITCH;
+
 import java.util.*;
 
 public class Search {
@@ -5,13 +7,16 @@ public class Search {
     public static void main(String[] args){
         Integer[][] grid = genGrid(5, 0.25f, true);
         printGrid(grid);
+        Node result = aStarSearch(grid, Type.EUCLIDIAN);
+        System.out.print(result.toString());
     }
 
     /**
      * Generates a gridworld object of size dim x dim. index 0,0 is the start
-     * state and index dim-1, dim-1 is the goal state.
-     *
+     * state and index dim-1, dim-1 is the goal state. gridworld coordinates are
+     * indexed as gridworld[x][y]: x is the horizontal axis and y is the vertical.
      * Blocked spaces are set to -1; open spaces are either infinity or 0.
+     *
      * @param dim The dimensions of the gridworld.
      * @param p The probability of any generated cell initializing as blocked.
      * @param visibility Whether or not the gridworld is fully visible to the agent.
@@ -32,12 +37,11 @@ public class Search {
 
     /**
      * Prints a character graphic representation of the specified gridworld.
-     * @param gridworld
      */
     public static void printGrid(Integer[][] gridworld){
         for (int i=0; i<gridworld.length; i++){
             for (int j=0; j<gridworld.length; j++){
-                if(gridworld[i][j] == -1){
+                if(gridworld[j][i] == -1){
                     System.out.print("B ");
                 } else{
                     System.out.print("o ");
@@ -50,12 +54,12 @@ public class Search {
     /**
      * An A* search algorithm implemented utilizing a min binary heap structure.
      *
+     * param repeated Whether this method is being used in A* repeated or not (deprecated).
      * @param gridworld The gridworld to apply the algorithm to.
      * @param heuristic The heuristic formula to be used when searching.
-     * @param repeated Whether this method is being used in A* repeated or not.
-     * @return True if solvable, false if not.
+     * @return Goal Node with path tree if solvable, null if not.
      */
-    public static boolean aStarSearch(Integer[][] gridworld, Type heuristic, boolean repeated){
+    public static Node aStarSearch(Integer[][] gridworld, Type heuristic){
         int dim = gridworld.length-1;
         Node start = new Node(0, 0, 0, heuristicCalc(heuristic, 0,0,
                 dim, dim), null);
@@ -63,6 +67,7 @@ public class Search {
         PriorityQueue<Node> openList = new PriorityQueue<Node>(nodeComparator);
         ArrayList<Node> closedList = new ArrayList<Node>();
 
+        /*
         // Put this section of code into the A* repeated method and remove the repeated argument.
         if(repeated){
             //initialize g values in gridworld to 0.
@@ -72,43 +77,71 @@ public class Search {
                 }
             }
         }
+        */
 
-        Node temp, child = null;
         openList.add(start);
         while(openList.size() != 0) {
             Node curr = openList.poll();
-            if (curr.x == dim && curr.y == dim) return true; //change to node later
-            // Expand curr
+            if (curr.x == dim && curr.y == dim) return curr;
             closedList.add(curr);
-            // Actions
-            // Check if the agent can move up and wont be out of bounds or blocked.
+            // Check if the agent can move up, right, down, or left and wont be out of bounds
+            // or blocked.
             if(curr.y-1 >= 0 && gridworld[curr.x][curr.y-1] != -1) {
-                gridworld[curr.x][curr.y-1] = curr.g +1;
-                child = new Node(curr.x, curr.y-1, curr.g+1,
-                        heuristicCalc(heuristic, curr.x, curr.y-1, dim, dim), curr);
-                // Check if the child is in the openList or the closedList.
-                if(!closedList.contains(child) && !openList.contains(child)) {
-                    openList.add(child);
-                    continue;
-                // Check if the child is in the openList with a higher path cost.
-                } else if(openList.contains(child) && (temp = nodeSearch(openList, child)).f > child.f) {
-                    temp.f = child.f;
-                }
+                performAction(Direction.UP, heuristic, curr, openList, closedList, gridworld);
             }
-            // Check if the agent can move right and wont be out of bounds or blocked.
             if(curr.x+1 <= dim && gridworld[curr.x+1][curr.y] != -1) {
-
+                performAction(Direction.RIGHT, heuristic, curr, openList, closedList, gridworld);
             }
-            // Check if the agent can move down and wont be out of bounds or blocked.
             if(curr.y+1 <= dim && gridworld[curr.x][curr.y+1] != -1) {
-
+                performAction(Direction.DOWN, heuristic, curr, openList, closedList, gridworld);
             }
-            // Check if the agent can move left and wont be out of bounds or blocked.
             if(curr.x-1 >= 0 && gridworld[curr.x-1][curr.y] != -1) {
-
+                performAction(Direction.LEFT, heuristic, curr, openList, closedList, gridworld);
             }
         }
-        return false;
+        return null;
+    }
+
+    /**
+     * Explores the direction adjacent to the agent and updates the openList accordingly.
+     * @param direction The direction to explore from the agent's current position.
+     * @param curr The current position of the agent.
+     */
+    public static void performAction(Direction direction, Type heuristic, Node curr,
+                                     PriorityQueue<Node> openList, ArrayList<Node> closedList,
+                                     Integer[][] gridworld) {
+        int x = curr.x;
+        int y = curr.y;
+        int dim = gridworld.length-1;
+
+        // Initialize new coordinates based on the direction to explore.
+        switch(direction) {
+            case UP:
+                y--;
+                break;
+            case RIGHT:
+                x++;
+                break;
+            case DOWN:
+                y++;
+                break;
+            case LEFT:
+                x--;
+                break;
+        }
+
+        Node child, temp;
+        gridworld[x][y] = curr.g + 1;
+        child = new Node(x, y, curr.g+1,
+                heuristicCalc(heuristic, x, y, dim, dim), curr);
+        // Check if the child is in the openList or the closedList.
+        if(!closedList.contains(child) && !openList.contains(child)) {
+            openList.add(child);
+            // Check if the child is in the openList with a higher path cost.
+        } else if(openList.contains(child) &&
+                (temp = nodeSearch(openList, child)).f > child.f) {
+            temp.f = child.f;
+        }
     }
 
     /**
@@ -139,12 +172,18 @@ public class Search {
     }
 
     /**
+     * Cardinal directions used to describe the agent's movements.
+     */
+    public enum Direction {
+        UP,
+        DOWN,
+        LEFT,
+        RIGHT;
+    }
+
+    /**
      * Calculates the heuristic between two given states.
      * @param type The type of heuristic formula to use for calculations.
-     * @param x1
-     * @param x2
-     * @param y1
-     * @param y2
      * @return The specified heuristic between two states
      */
     public static double heuristicCalc(Type type, int x1, int y1, int x2, int y2){

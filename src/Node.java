@@ -10,10 +10,6 @@ public class Node {
     Node tree;
     int search;
 
-    public Node() {
-        search = 0;
-    }
-
     public Node(int x, int y, int g, double h, Node tree) {
         this.x = x;
         this.y = y;
@@ -45,6 +41,16 @@ public class Node {
 
 
     public String toString(){
-        return "";
+        if(tree == null) {
+            return "Not solvable.";
+        }
+        String result = "x: " + x + ", y: " + y + ", g: " + g + ", h: " + h + ", f " + f +
+                ", path: ";
+        Node ptr = tree;
+        while(ptr != null) {
+            result += "(" + ptr.x + "," + ptr.y + "), ";
+            ptr = ptr.tree;
+        }
+        return result;
     }
 }
