@@ -1,5 +1,3 @@
-
-
 /**
  * Used to store data about states as the search algorithm progresses.
  */

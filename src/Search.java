@@ -59,11 +59,12 @@ public class Search {
     }
 
     /**
-     * Prints a character graphic representation of the specified gridworld.
-     * Draws the path of the agent Node traveled (marked with X).
+     * Prints a character graphic representation of the specified gridworld and
+     * draws the path of the agent Node traveled (marked with X).
      */
     public static void printGrid(Integer[][] gridworld, Node agent){
 
+        // Create a copy of the gridworld so we don't modify the original.
         Integer[][] gridworld1 = new Integer[gridworld.length][gridworld.length];
         for (int i=0; i<gridworld1.length; i++) {
             for(int j=0; j<gridworld1.length; j++) {
@@ -71,6 +72,7 @@ public class Search {
             }
         }
 
+        // Mark the path the agent traveled.
         Node ptr = agent;
         gridworld1[ptr.x][ptr.y] = -2;
         while(ptr.tree != null) {
@@ -78,6 +80,7 @@ public class Search {
             ptr = ptr.tree;
         }
 
+        // Print the resultant gridworld.
         System.out.print("Coordinates:\n  ");
         for(int i=0; i<gridworld1.length-2 && i<10; i++) System.out.print(" " + i);
         System.out.println(" ...");
@@ -148,7 +151,7 @@ public class Search {
                 performAction(Direction.LEFT, heuristic, curr, openList, closedList, gridworld);
             }
         }
-        return start;
+        return start; // Failure.
     }
 
     /**
@@ -194,8 +197,9 @@ public class Search {
     }
 
     /**
-     * Searches a PriorityQueue<Node> for the given Node. Returns the node upon successful search,
-     * null if the Queue does not contain the node.
+     * Searches a PriorityQueue<Node> for the given Node via an Iterator object.
+     * Returns the node upon successful search, null if the Queue does not contain
+     * the node.
      * @param heap The PriorityQueue<Node> to search.
      * @param key The Node to find.
      * @return The Node if found, null if not found.
@@ -241,7 +245,7 @@ public class Search {
         } else if(type == Type.MANHATTAN) {
             return Math.abs(x1-x2) + Math.abs(y1-y2);
         } else {
-            //CHEBYSHEV
+            // CHEBYSHEV
             return Math.max(Math.abs(x1-x2), Math.abs(y1-y2));
         }
     }
