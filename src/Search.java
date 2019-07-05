@@ -1,7 +1,4 @@
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Random;
-import java.util.PriorityQueue;
+import java.util.*;
 
 public class Search {
 
@@ -24,7 +21,8 @@ public class Search {
         Integer[][] gridworld = new Integer[dim][dim];
         for (int i=0; i<dim; i++){
             for (int j=0; j<dim; j++){
-                gridworld[i][j] = new Random().nextDouble() <= p ? -1 : (visibility? Integer.MAX_VALUE : 0);
+                gridworld[i][j] = new Random().nextDouble() <= p ?
+                        -1 : (visibility? Integer.MAX_VALUE : 0);
             }
         }
         gridworld[0][0] = 0;
@@ -75,6 +73,7 @@ public class Search {
             }
         }
 
+        Node temp, child = null;
         openList.add(start);
         while(openList.size() != 0) {
             Node curr = openList.poll();
@@ -82,20 +81,52 @@ public class Search {
             // Expand curr
             closedList.add(curr);
             // Actions
-            // Check if agent can move up and wont be out of bounds or blocked.
+            // Check if the agent can move up and wont be out of bounds or blocked.
             if(curr.y-1 >= 0 && gridworld[curr.x][curr.y-1] != -1) {
-                Node child = new Node(curr.x, curr.y-1, curr.g+1,
+                gridworld[curr.x][curr.y-1] = curr.g +1;
+                child = new Node(curr.x, curr.y-1, curr.g+1,
                         heuristicCalc(heuristic, curr.x, curr.y-1, dim, dim), curr);
                 // Check if the child is in the openList or the closedList.
                 if(!closedList.contains(child) && !openList.contains(child)) {
                     openList.add(child);
                     continue;
                 // Check if the child is in the openList with a higher path cost.
-                } //else if(openList.contains(child) && child.g > openList.)
+                } else if(openList.contains(child) && (temp = nodeSearch(openList, child)).f > child.f) {
+                    temp.f = child.f;
+                }
             }
+            // Check if the agent can move right and wont be out of bounds or blocked.
+            if(curr.x+1 <= dim && gridworld[curr.x+1][curr.y] != -1) {
 
+            }
+            // Check if the agent can move down and wont be out of bounds or blocked.
+            if(curr.y+1 <= dim && gridworld[curr.x][curr.y+1] != -1) {
+
+            }
+            // Check if the agent can move left and wont be out of bounds or blocked.
+            if(curr.x-1 >= 0 && gridworld[curr.x-1][curr.y] != -1) {
+
+            }
         }
         return false;
+    }
+
+    /**
+     * Searches a PriorityQueue<Node> for the given Node. Returns the node upon successful search,
+     * null if the Queue does not contain the node.
+     * @param heap The PriorityQueue<Node> to search.
+     * @param key The Node to find.
+     * @return The Node if found, null if not found.
+     */
+    public static Node nodeSearch(PriorityQueue<Node> heap, Node key) {
+        Iterator<Node> it = heap.iterator();
+        while(it.hasNext()) {
+            Node curr = it.next();
+            if(curr.equals(key)) {
+                return curr;
+            }
+        }
+        return null;
     }
 
     /**
