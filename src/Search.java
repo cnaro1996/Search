@@ -39,7 +39,15 @@ public class Search {
      * Prints a character graphic representation of the specified gridworld.
      */
     public static void printGrid(Integer[][] gridworld){
+        System.out.print("Coordinates:\n  ");
+        for(int i=0; i<gridworld.length-2 && i<10; i++) System.out.print(" " + i);
+        System.out.println(" ...");
         for (int i=0; i<gridworld.length; i++){
+            if(i<gridworld.length-3 && i<10) {
+                System.out.print(" " + i + " ");
+            } else if(i >= gridworld.length-4 && i < gridworld.length) {
+                System.out.print(" " + "." + " ");
+            } else System.out.print("   ");
             for (int j=0; j<gridworld.length; j++){
                 if(gridworld[j][i] == -1){
                     System.out.print("B ");
@@ -82,7 +90,7 @@ public class Search {
         openList.add(start);
         while(openList.size() != 0) {
             Node curr = openList.poll();
-            if (curr.x == dim && curr.y == dim) return curr;
+            if (curr.x == dim && curr.y == dim) return curr; // Success.
             closedList.add(curr);
             // Check if the agent can move up, right, down, or left and wont be out of bounds
             // or blocked.
