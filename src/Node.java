@@ -46,6 +46,7 @@ public class Node {
         }
         String result = "x: " + x + ", y: " + y + ", g: " + g + ", h: " + h + ", f " + f +
                 ", path: ";
+        result += "(" + this.x + "," + this.y + "), ";
         Node ptr = tree;
         while(ptr != null) {
             result += "(" + ptr.x + "," + ptr.y + "), ";

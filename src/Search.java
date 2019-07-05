@@ -99,7 +99,7 @@ public class Search {
                 performAction(Direction.LEFT, heuristic, curr, openList, closedList, gridworld);
             }
         }
-        return null;
+        return start;
     }
 
     /**
