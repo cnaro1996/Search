@@ -44,14 +44,20 @@ public class Node {
         if(tree == null) {
             return "Not solvable.";
         }
+        int count = 0;
         String result = "x: " + x + ", y: " + y + ", g: " + g + ", h: " + h + ", f " + f +
-                ", path: ";
+                ", \npath: ";
         result += "(" + this.x + "," + this.y + "), ";
         Node ptr = tree;
         while(ptr != null) {
             result += "(" + ptr.x + "," + ptr.y + "), ";
             ptr = ptr.tree;
+            count++;
+            if(count%5==0){
+                result += "\n";
+            }
         }
+        result += "\nPath length: " + count;
         return result;
     }
 }

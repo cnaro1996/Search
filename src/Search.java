@@ -5,7 +5,7 @@ import java.util.*;
 public class Search {
 
     public static void main(String[] args){
-        Integer[][] grid = genGrid(5, 0.25f, true);
+        Integer[][] grid = genGrid(100, 0.25f, true);
         printGrid(grid);
         Node result = aStarSearch(grid, Type.EUCLIDIAN);
         System.out.print(result.toString());
