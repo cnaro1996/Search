@@ -3,10 +3,10 @@ import java.util.*;
 public class Search {
 
     public static void main(String[] args){
-        Integer[][] grid = genGrid(100, 0.33f, true);
+        Integer[][] grid = genGrid(25, 0.33f, true);
         printGrid(grid);
         Node result = aStarSearch(grid, Type.CHEBYSHEV);
-        printGrid(grid, result);
+        //printGrid(grid, result);
         System.out.print(result.toString() + Type.CHEBYSHEV.toString());
     }
 
@@ -14,7 +14,8 @@ public class Search {
      * Generates a gridworld object of size dim x dim. index 0,0 is the start
      * state and index dim-1, dim-1 is the goal state. gridworld coordinates are
      * indexed as gridworld[x][y]: x is the horizontal axis and y is the vertical.
-     * Blocked spaces are set to -1; open spaces are either infinity or 0.
+     * Blocked spaces are set to -1; open spaces are either infinity or 0 and
+     * represent that space's g value.
      *
      * @param dim The dimensions of the gridworld.
      * @param p The probability of any generated cell initializing as blocked.
@@ -104,6 +105,65 @@ public class Search {
     }
 
     /**
+     * Assumes the agent cannot see the underlying gridworld's spaces not directly
+     * adjacent to it, but can see the goal and start states. Uses the A* search
+     * algorithm to search along a best-case path, researching whenever the agent
+     * encounters a blocked space in this path.
+     *
+     * @param gridworld The underlying gridworld the agent must travel through
+     * @param direction Whether to perform forwards or backwards Repeated A* search.
+     * @param heuristic The heuristic formula to use.
+     * @return The Node with the tree path the agent can travel to the goal. If the
+     * goal is impossible to reach, the path the agent traveled until it concluded
+     * failure.
+     */
+    public static Node repeatedAStarSearch(Integer[][] gridworld, Direction direction, Type heuristic) {
+        // Create a duplicate gridworld object with no information on blocked spaces.
+        // Update this object as the agent discovers blocked spaces.
+        int goal;
+        int dim = gridworld.length-1;
+        Integer[][] agentWorld = new Integer[dim+1][dim+1];
+        Node presumedPath = aStarSearch(agentWorld, heuristic);
+        Node agent;
+
+        // Initialize values based on the direction the agent will travel.
+        if(direction == Direction.FORWARD) {
+            agent = new Node(0, 0, 0,
+                    heuristicCalc(heuristic, 0, 0, dim, dim), null);
+            goal = dim;
+
+            //Reverse the path order.
+            Stack<Node> temp = new Stack<Node>();
+            temp.push(presumedPath);
+            while(presumedPath.tree != null) {
+                temp.push(presumedPath.tree);
+                presumedPath = presumedPath.tree;
+            }
+            presumedPath = temp.pop();
+            Node ptr = presumedPath;
+            while(!temp.empty()) {
+                ptr.tree = temp.pop();
+                ptr = ptr.tree;
+            }
+
+        } else { // BACKWARD
+            agent = new Node(dim, dim, 0,
+                    heuristicCalc(heuristic, dim, dim, 0, 0), null);
+            goal = 0;
+        }
+
+        while(agent.x != goal && agent.y != goal) {
+            if(presumedPath.tree == null) { // Failure.
+                break;
+            }
+            
+
+        }
+
+        return agent;
+    }
+
+    /**
      * An A* search algorithm implemented utilizing a min binary heap structure.
      *
      * param repeated Whether this method is being used in A* repeated or not (deprecated).
@@ -118,18 +178,6 @@ public class Search {
         Comparator<Node> nodeComparator = new NodeComparator();
         PriorityQueue<Node> openList = new PriorityQueue<Node>(nodeComparator);
         ArrayList<Node> closedList = new ArrayList<Node>();
-
-        /*
-        // Put this section of code into the A* repeated method and remove the repeated argument.
-        if(repeated){
-            //initialize g values in gridworld to 0.
-            for (int i=0; i<dim+1; i++){
-                for (int j=0; j<dim+1; j++){
-                    gridworld[i][j] = (gridworld[i][j] == -1) ? -1 : 0;
-                }
-            }
-        }
-        */
 
         openList.add(start);
         while(openList.size() != 0) {
@@ -231,7 +279,9 @@ public class Search {
         UP,
         DOWN,
         LEFT,
-        RIGHT;
+        RIGHT,
+        FORWARD,
+        BACKWARD;
     }
 
     /**
