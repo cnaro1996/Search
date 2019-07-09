@@ -4,8 +4,13 @@ public class Search {
 
     public static void main(String[] args){
         Integer[][] grid = genGrid(25, 0.33f, true);
+        Comparator<Node> nodeComparator = new NodeComparator();
+        PriorityQueue<Node> openList = new PriorityQueue<Node>(nodeComparator);
+        ArrayList<Node> closedList = new ArrayList<Node>();
+
         printGrid(grid);
-        Node result = aStarSearch(grid, Type.CHEBYSHEV);
+
+        Node result = aStarSearch(grid, openList, closedList, Type.CHEBYSHEV);
         //printGrid(grid, result);
         System.out.print(result.toString() + Type.CHEBYSHEV.toString());
     }
@@ -121,42 +126,37 @@ public class Search {
         // Create a duplicate gridworld object with no information on blocked spaces.
         // Update this object as the agent discovers blocked spaces.
         int goal;
+        int counter =0;
+        int goalSearch = 0;
         int dim = gridworld.length-1;
         Integer[][] agentWorld = new Integer[dim+1][dim+1];
-        Node presumedPath = aStarSearch(agentWorld, heuristic);
+        Comparator<Node> nodeComparator = new NodeComparator();
+        PriorityQueue<Node> openList = new PriorityQueue<Node>(nodeComparator);
+        ArrayList<Node> closedList = new ArrayList<Node>();
         Node agent;
+        Node presumedPath = aStarSearch(agentWorld, openList, closedList, heuristic);
 
         // Initialize values based on the direction the agent will travel.
         if(direction == Direction.FORWARD) {
             agent = new Node(0, 0, 0,
                     heuristicCalc(heuristic, 0, 0, dim, dim), null);
             goal = dim;
-
-            //Reverse the path order.
-            Stack<Node> temp = new Stack<Node>();
-            temp.push(presumedPath);
-            while(presumedPath.tree != null) {
-                temp.push(presumedPath.tree);
-                presumedPath = presumedPath.tree;
-            }
-            presumedPath = temp.pop();
-            Node ptr = presumedPath;
-            while(!temp.empty()) {
-                ptr.tree = temp.pop();
-                ptr = ptr.tree;
-            }
-
+            //initializePath(presumedPath, Direction.FORWARD);
         } else { // BACKWARD
             agent = new Node(dim, dim, 0,
                     heuristicCalc(heuristic, dim, dim, 0, 0), null);
             goal = 0;
         }
 
+        // Begin searching.
         while(agent.x != goal && agent.y != goal) {
             if(presumedPath.tree == null) { // Failure.
                 break;
             }
-            
+            counter ++;
+            agent.search = counter;
+            goalSearch = counter;
+            presumedPath = initializePath(presumedPath, direction);
 
         }
 
@@ -164,20 +164,51 @@ public class Search {
     }
 
     /**
+     * Returns a path (Node) based on whether the agent is travelling forwards or backwards.
+     *
+     * @param path
+     * @param direction
+     * @return
+     */
+    public static Node initializePath(Node path, Direction direction) {
+        if(direction == Direction.BACKWARD) {
+            return path;
+        } else {
+            //Reverse the path order.
+            Stack<Node> temp = new Stack<Node>();
+            temp.push(path);
+            while(path.tree != null) {
+                temp.push(path.tree);
+                path = path.tree;
+            }
+            path = temp.pop();
+            Node ptr = path;
+            while(!temp.empty()) {
+                ptr.tree = temp.pop();
+                ptr = ptr.tree;
+            }
+            return path;
+        }
+    }
+
+
+    /**
      * An A* search algorithm implemented utilizing a min binary heap structure.
      *
      * param repeated Whether this method is being used in A* repeated or not (deprecated).
      * @param gridworld The gridworld to apply the algorithm to.
      * @param heuristic The heuristic formula to be used when searching.
-     * @return Goal Node with path tree if solvable, null if not.
+     * @return Goal Node with path tree if solvable, start Node if not (with tree = null).
      */
-    public static Node aStarSearch(Integer[][] gridworld, Type heuristic){
+    public static Node aStarSearch(Integer[][] gridworld, PriorityQueue<Node> openList,
+                                   ArrayList<Node> closedList, Type heuristic){
         int dim = gridworld.length-1;
         Node start = new Node(0, 0, 0, heuristicCalc(heuristic, 0,0,
                 dim, dim), null);
-        Comparator<Node> nodeComparator = new NodeComparator();
+        /*Comparator<Node> nodeComparator = new NodeComparator();
         PriorityQueue<Node> openList = new PriorityQueue<Node>(nodeComparator);
         ArrayList<Node> closedList = new ArrayList<Node>();
+        */
 
         openList.add(start);
         while(openList.size() != 0) {
