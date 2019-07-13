@@ -42,7 +42,7 @@ public class Node {
 
     public String toString(){
         if(tree == null) {
-            return "Not solvable.";
+            return "x = " + x + ", y = " + y + ", Not solvable.";
         }
         int count = 0;
         String result = "x: " + x + ", y: " + y + ", g: " + g + ", h: " + h + ", f " + f +

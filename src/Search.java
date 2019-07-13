@@ -3,16 +3,21 @@ import java.util.*;
 public class Search {
 
     public static void main(String[] args){
-        Integer[][] grid = genGrid(25, 0.33f, true);
+        int[][] grid = genGrid(25, 0.20f, true);
         Comparator<Node> nodeComparator = new NodeComparator();
         PriorityQueue<Node> openList = new PriorityQueue<Node>(nodeComparator);
         ArrayList<Node> closedList = new ArrayList<Node>();
+        SearchTracker regular = new SearchTracker(null, false, null, 0);
 
         printGrid(grid);
 
-        Node result = aStarSearch(grid, openList, closedList, Type.CHEBYSHEV);
+        Node result = repeatedAStarSearch(grid, Direction.FORWARD, Type.CHEBYSHEV);
+
+        //Node result = aStarSearch(grid, openList, closedList, Type.CHEBYSHEV,
+        //      regular);
         //printGrid(grid, result);
-        System.out.print(result.toString() + Type.CHEBYSHEV.toString());
+        System.out.println("test");
+        System.out.print(result.toString() + ", Heuristic: " + Type.CHEBYSHEV.toString());
     }
 
     /**
@@ -27,8 +32,8 @@ public class Search {
      * @param visibility Whether or not the gridworld is fully visible to the agent.
      * @return The 2D boolean array gridworld object.
      */
-    public static Integer[][] genGrid(int dim, float p, boolean visibility){
-        Integer[][] gridworld = new Integer[dim][dim];
+    public static int[][] genGrid(int dim, float p, boolean visibility){
+        int[][] gridworld = new int[dim][dim];
         for (int i=0; i<dim; i++){
             for (int j=0; j<dim; j++){
                 gridworld[i][j] = new Random().nextDouble() <= p ?
@@ -43,7 +48,7 @@ public class Search {
     /**
      * Prints a character graphic representation of the specified gridworld.
      */
-    public static void printGrid(Integer[][] gridworld){
+    public static void printGrid(int[][] gridworld){
         System.out.print("Coordinates:\n  ");
         for(int i=0; i<gridworld.length-2 && i<10; i++) System.out.print(" " + i);
         System.out.println(" ...");
@@ -68,10 +73,10 @@ public class Search {
      * Prints a character graphic representation of the specified gridworld and
      * draws the path of the agent Node traveled (marked with X).
      */
-    public static void printGrid(Integer[][] gridworld, Node agent){
+    public static void printGrid(int[][] gridworld, Node agent){
 
         // Create a copy of the gridworld so we don't modify the original.
-        Integer[][] gridworld1 = new Integer[gridworld.length][gridworld.length];
+        int[][] gridworld1 = new int[gridworld.length][gridworld.length];
         for (int i=0; i<gridworld1.length; i++) {
             for(int j=0; j<gridworld1.length; j++) {
                 gridworld1[j][i] = gridworld[j][i];
@@ -122,72 +127,139 @@ public class Search {
      * goal is impossible to reach, the path the agent traveled until it concluded
      * failure.
      */
-    public static Node repeatedAStarSearch(Integer[][] gridworld, Direction direction, Type heuristic) {
+    public static Node repeatedAStarSearch(int[][] gridworld, Direction direction,
+                                           Type heuristic) {
         // Create a duplicate gridworld object with no information on blocked spaces.
         // Update this object as the agent discovers blocked spaces.
         int goal;
-        int counter =0;
-        int goalSearch = 0;
         int dim = gridworld.length-1;
-        Integer[][] agentWorld = new Integer[dim+1][dim+1];
+        int[][] agentWorld = new int[gridworld.length][gridworld.length];
         Comparator<Node> nodeComparator = new NodeComparator();
         PriorityQueue<Node> openList = new PriorityQueue<Node>(nodeComparator);
         ArrayList<Node> closedList = new ArrayList<Node>();
-        Node agent;
-        Node presumedPath = aStarSearch(agentWorld, openList, closedList, heuristic);
+        SearchTracker t = new SearchTracker(direction, true, null, 0);
+        Node presumedPath;
 
         // Initialize values based on the direction the agent will travel.
         if(direction == Direction.FORWARD) {
-            agent = new Node(0, 0, 0,
+            t.agent = new Node(0, 0, 0,
                     heuristicCalc(heuristic, 0, 0, dim, dim), null);
             goal = dim;
-            //initializePath(presumedPath, Direction.FORWARD);
         } else { // BACKWARD
-            agent = new Node(dim, dim, 0,
+            t.agent = new Node(dim, dim, 0,
                     heuristicCalc(heuristic, dim, dim, 0, 0), null);
             goal = 0;
         }
 
+
+        Node temp;
         // Begin searching.
-        while(agent.x != goal && agent.y != goal) {
-            if(presumedPath.tree == null) { // Failure.
+        while(t.agent.x != goal && t.agent.y != goal) {
+            System.out.println("Agent position: " + t.agent.toString());
+            t.counter ++;
+            t.agent.search = t.counter;
+            t.agent.g = 0; // This statement might not be needed.
+            agentWorld[t.agent.x][t.agent.y] = 0;
+            agentWorld[goal][goal] = Integer.MAX_VALUE;
+            closedList.clear();
+            openList.clear();
+            temp = aStarSearch(agentWorld,
+                    openList, closedList, heuristic, t);
+            temp.search = t.counter;
+            System.out.println(temp.toString());
+            presumedPath = reversePath(temp);
+            //System.out.println(presumedPath.toString());
+             // clear() statements to before temp assignment.
+            if(openList.isEmpty()) { // Failure.
                 break;
             }
-            counter ++;
-            agent.search = counter;
-            goalSearch = counter;
-            presumedPath = initializePath(presumedPath, direction);
+            //t.agent = moveAgent(t, temp, agentWorld, gridworld);
+            t.agent = moveAgent(t, presumedPath, agentWorld, gridworld);
+            System.out.println("___________________________");
 
         }
-
-        return agent;
+        return t.agent;
     }
 
     /**
-     * Returns a path (Node) based on whether the agent is travelling forwards or backwards.
+     * Moves the agent along the presumed path until it encounters a blocked space
+     * or the goal. Updates the agent's view of the gridworld (agentWorld) if it
+     * encounters a blocked space.
+     *
+     * Updates the agent's position to the space before the block on the presumed
+     * path if a blocked space is found, or to the goal if no blocked spaces are found.
+     *
+     * @param presumedPath
+     * @param agentWorld The gridworld the agent sees.
+     * @param gridworld The fully visible gridworld.
+     */
+    public static Node moveAgent(SearchTracker tracker, Node presumedPath, int[][] agentWorld,
+                                 int[][] gridworld) {
+        tracker.agent = reversePath(tracker.agent);
+        System.out.println("Move agent, Presumed Path " + presumedPath.toString());
+        Node ptr = presumedPath;
+        while(ptr.tree != null){
+            if(gridworld[ptr.tree.x][ptr.tree.y] == -1) {
+                agentWorld[ptr.tree.x][ptr.tree.y] = -1;
+                ptr.tree = null;
+                break;
+            } else {
+                ptr = ptr.tree;
+            }
+        }
+        System.out.println("Made it to moveAgent part 2");
+        // wtf is this part of the code doing.. try removing the while loop
+        // it's traveling to the end of the linked list.
+        ptr = tracker.agent;
+        while(ptr.tree != null) {
+            ptr = ptr.tree;
+        }
+        ptr.tree = presumedPath.tree;
+        //tracker.agent = reversePath(tracker.agent);
+        System.out.println("reverse completed. move completed.");
+        System.out.println("_____________________");
+        return reversePath(tracker.agent);
+    }
+
+    /**
+     * Returns a tree path in reverse order.
+     *
+     * BUG IN THIS METHOD CAUSING INFINITE LOOP
+     *
+     * If the path tree is null, the aStarSearch algorithm failed and this method will return
+     * the path as is.
      *
      * @param path
-     * @param direction
      * @return
      */
-    public static Node initializePath(Node path, Direction direction) {
-        if(direction == Direction.BACKWARD) {
-            return path;
+    public static Node reversePath(Node path) {
+        if(path == null) {
+            return null;
         } else {
             //Reverse the path order.
             Stack<Node> temp = new Stack<Node>();
             temp.push(path);
-            while(path.tree != null) {
-                temp.push(path.tree);
-                path = path.tree;
+            Node ptr = path.tree;
+            path.tree = null;
+            if(ptr != null){
+                while(ptr.tree != null) {
+                    path = ptr.tree;
+                    temp.push(ptr);
+                    ptr.tree = null;
+                    ptr = path;
+                }
+                temp.push(ptr);
+            } else {
+                return temp.pop();
             }
             path = temp.pop();
-            Node ptr = path;
+            ptr = path;
             while(!temp.empty()) {
                 ptr.tree = temp.pop();
                 ptr = ptr.tree;
             }
-            return path;
+            //System.out.println(ptr.toString() + "Reverse."); // NEVER REACHED.
+            return ptr;
         }
     }
 
@@ -200,34 +272,63 @@ public class Search {
      * @param heuristic The heuristic formula to be used when searching.
      * @return Goal Node with path tree if solvable, start Node if not (with tree = null).
      */
-    public static Node aStarSearch(Integer[][] gridworld, PriorityQueue<Node> openList,
-                                   ArrayList<Node> closedList, Type heuristic){
+    public static Node aStarSearch(int[][] gridworld, PriorityQueue<Node> openList,
+                                   ArrayList<Node> closedList, Type heuristic,
+                                   SearchTracker tracker){
         int dim = gridworld.length-1;
-        Node start = new Node(0, 0, 0, heuristicCalc(heuristic, 0,0,
-                dim, dim), null);
-        /*Comparator<Node> nodeComparator = new NodeComparator();
-        PriorityQueue<Node> openList = new PriorityQueue<Node>(nodeComparator);
-        ArrayList<Node> closedList = new ArrayList<Node>();
-        */
+        Node start;
+        boolean condition;
+        int goal;
 
+        // If running A* repeated, we want the algorithm to start at the agent's current position.
+        // If running A* repeated, we want to set goal coordinates based on it's direction.
+        // The while loop condition depends on whether we're running repeated A* search or not.
+        if(tracker.repeated) {
+            start = tracker.agent;
+            goal = tracker.direction == Direction.FORWARD ? dim : 0;
+            condition = gridworld[goal][goal] > start.f;
+        } else {
+            start = new Node(0, 0, 0, heuristicCalc(heuristic, 0,0,
+                    dim, dim), null);
+            goal = dim;
+            condition = true; // The first iteration of the loop always happens.
+
+        }
+
+        Node temp;
         openList.add(start);
-        while(openList.size() != 0) {
+        while(condition) {
             Node curr = openList.poll();
-            if (curr.x == dim && curr.y == dim) return curr; // Success.
+            if (curr.x == goal && curr.y == goal) return curr; // Success.
             closedList.add(curr);
             // Check if the agent can move up, right, down, or left and wont be out of bounds
             // or blocked.
             if(curr.y-1 >= 0 && gridworld[curr.x][curr.y-1] != -1) {
-                performAction(Direction.UP, heuristic, curr, openList, closedList, gridworld);
+                performAction(Direction.UP, heuristic, curr, openList, closedList,
+                        gridworld, tracker);
             }
             if(curr.x+1 <= dim && gridworld[curr.x+1][curr.y] != -1) {
-                performAction(Direction.RIGHT, heuristic, curr, openList, closedList, gridworld);
+                performAction(Direction.RIGHT, heuristic, curr, openList, closedList,
+                        gridworld, tracker);
             }
             if(curr.y+1 <= dim && gridworld[curr.x][curr.y+1] != -1) {
-                performAction(Direction.DOWN, heuristic, curr, openList, closedList, gridworld);
+                performAction(Direction.DOWN, heuristic, curr, openList, closedList,
+                        gridworld, tracker);
             }
             if(curr.x-1 >= 0 && gridworld[curr.x-1][curr.y] != -1) {
-                performAction(Direction.LEFT, heuristic, curr, openList, closedList, gridworld);
+                performAction(Direction.LEFT, heuristic, curr, openList, closedList,
+                        gridworld, tracker);
+            }
+            // Update condition statement for while loop.
+            if(tracker.repeated) {
+                temp = openList.peek();
+                if(temp == null){
+                    return start;
+                } else {
+                    condition = gridworld[goal][goal] > openList.peek().f;
+                }
+            } else {
+                condition = openList.size() != 0 ;
             }
         }
         return start; // Failure.
@@ -240,10 +341,10 @@ public class Search {
      */
     public static void performAction(Direction direction, Type heuristic, Node curr,
                                      PriorityQueue<Node> openList, ArrayList<Node> closedList,
-                                     Integer[][] gridworld) {
+                                     int[][] gridworld, SearchTracker tracker) {
         int x = curr.x;
         int y = curr.y;
-        int dim = gridworld.length-1;
+        int goal = tracker.direction == Direction.FORWARD ? gridworld.length-1 : 0;
 
         // Initialize new coordinates based on the direction to explore.
         switch(direction) {
@@ -262,26 +363,53 @@ public class Search {
         }
 
         Node child, temp;
-        gridworld[x][y] = curr.g + 1;
-        child = new Node(x, y, curr.g+1,
-                heuristicCalc(heuristic, x, y, dim, dim), curr);
-        // Check if the child is in the openList or the closedList.
-        if(!closedList.contains(child) && !openList.contains(child)) {
-            openList.add(child);
-            // Check if the child is in the openList with a higher path cost.
-        } else if(openList.contains(child) &&
-                (temp = nodeSearch(openList, child)).f > child.f) {
-            temp.f = child.f;
+        child = new Node(x, y, 0,
+                heuristicCalc(heuristic, x, y, goal, goal), curr);
+
+        // A* repeated search performs actions differently than regular A* search.
+        if(tracker.repeated) {
+            if(closedList.contains(child)){
+                return;
+            }
+            if(child.search < tracker.counter) {
+                child.g = Integer.MAX_VALUE;
+                gridworld[child.x][child.y] = Integer.MAX_VALUE;
+                child.search = tracker.counter;
+            }
+            if(gridworld[child.x][child.y] > curr.g+1) {
+                child.g = curr.g+1;
+                gridworld[child.x][child.y] = curr.g+1;
+                child.tree = curr;
+                if(openList.contains(child) &&
+                        (temp = nodeSearch(openList, child)).f > child.f) {
+                    temp.f = child.f;
+                } else {
+                    openList.add(child);
+                }
+            }
+            //System.out.println("(" + x + "," + y + ")");
+        } else {
+            // Not being used in repeated A* search.
+            gridworld[x][y] = curr.g + 1;
+            child.g = curr.g+1;
+            // Check if the child is in the openList or the closedList.
+            if(!closedList.contains(child) && !openList.contains(child)) {
+                openList.add(child);
+                // Check if the child is in the openList with a higher path cost.
+            } else if(openList.contains(child) &&
+                    (temp = nodeSearch(openList, child)).f > child.f) {
+                temp.f = child.f;
+            }
         }
     }
 
     /**
      * Searches a PriorityQueue<Node> for the given Node via an Iterator object.
-     * Returns the node upon successful search, null if the Queue does not contain
-     * the node.
+     * Returns the node upon successful search or the original key if the Queue
+     * does not contain the node.
      * @param heap The PriorityQueue<Node> to search.
      * @param key The Node to find.
-     * @return The Node if found, null if not found.
+     * @return The Node if found, key if not found.
      */
     public static Node nodeSearch(PriorityQueue<Node> heap, Node key) {
         Iterator<Node> it = heap.iterator();
