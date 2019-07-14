@@ -46,7 +46,7 @@ public class Node {
         }
         int count = 0;
         String result = //"x: " + x + ", y: " + y + ", g: " + g + ", h: " + h + ", f " + f +
-                ", \ntree: ";
+                "\ntree: ";
         result += "(" + this.x + "," + this.y + "), ";
         Node ptr = tree;
         while(ptr != null) {

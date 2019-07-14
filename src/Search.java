@@ -10,13 +10,17 @@ public class Search {
         SearchTracker regular = new SearchTracker(null, false, null, 0);
 
         printGrid(grid);
+        System.out.println();
 
-        Node result = repeatedAStarSearch(grid, Direction.BACKWARD, Type.CHEBYSHEV);
+        Type heuristic = Type.CHEBYSHEV;
 
-        //Node result = aStarSearch(grid, openList, closedList, Type.CHEBYSHEV,
-        //      regular);
+        Node result1 = repeatedAStarSearch(grid, Direction.FORWARD, heuristic);
+        Node result2 = repeatedAStarSearch(grid, Direction.BACKWARD, heuristic);
+        Node result3 = aStarSearch(grid, openList, closedList, heuristic, regular);
+
+        Node result = result1;
         printGrid(grid, result);
-        System.out.print(result.toString() + ", Heuristic: " + Type.CHEBYSHEV.toString());
+        System.out.print(result.toString() + ", Heuristic: " + heuristic.toString());
     }
 
     /**
@@ -175,10 +179,6 @@ public class Search {
                 break;
             }
             t.agent = moveAgent(t, presumedPath, agentWorld, gridworld);
-            System.out.println("Current counter: " + t.counter);
-            //System.out.println("Current agent tree: " + t.agent.toString());
-            System.out.println("------------------------------------");
-
         }
         return (t.agent.x == goal && t.agent.y == goal)? t.path :
                 new Node(-1,-1, -1, -1, null);
@@ -199,7 +199,6 @@ public class Search {
     public static Node moveAgent(SearchTracker tracker, Node presumedPath, int[][] agentWorld,
                                  int[][] gridworld) {
         boolean finished = true;
-        System.out.println("Move agent, Presumed Path " + presumedPath.toString());
         Node ptr = presumedPath;
         while(ptr.tree != null){
             if(gridworld[ptr.tree.x][ptr.tree.y] == -1) {
@@ -215,61 +214,16 @@ public class Search {
         // Update whether the agent has reached the goal.
         if(finished) tracker.finished = true;
 
-        // Debugging statement.
-        System.out.println("Current agent travel path: " + tracker.path.toString());
-        System.out.println("Current new path segment: " + presumedPath.toString());
-
-        // Update agent's current path if it's not the same spot.
-        //if(presumedPath.x == tracker.agent.x &&
-        //        presumedPath.y == tracker.agent.y &&
-        //        presumedPath.tree != null) {
-            Node pptr = tracker.path;
-            while (pptr.tree != null &&
-                    !(pptr.x == presumedPath.x && pptr.y == presumedPath.y)){
-                pptr = pptr.tree;
-            }
-            //tracker.path.tree = presumedPath.tree;
-            pptr.tree = presumedPath.tree;
-        //}
-
-        // Debugging statement.
-        System.out.println("New agent travel path: " + tracker.path.toString());
+        Node pptr = tracker.path;
+        while (pptr.tree != null &&
+                !(pptr.x == presumedPath.x && pptr.y == presumedPath.y)){
+            pptr = pptr.tree;
+        }
+        pptr.tree = presumedPath.tree;
 
         // Update agent's new position.
         tracker.agent = ptr;
-
-        // Debugging while loop. Remove when code is working.
-        /*
-        ptr = tracker.path;
-        while(ptr.tree != null) {
-            System.out.println("(" + ptr.x + "," + ptr.y + ")");
-            try{
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                return null;
-            }
-            ptr = ptr.tree;
-        }
-        System.out.println("(" + ptr.x + "," + ptr.y + ")");
-        System.out.println(); // Debugging statement.
-        */
         return tracker.agent;
-
-
-        /*
-        System.out.println("Moved agent.");
-        ptr = tracker.agent;
-        while(ptr.tree != null) {
-            ptr = ptr.tree;
-        }
-        ptr.tree = presumedPath.tree;
-        System.out.println("_____________________");
-        System.out.println("counter = " + tracker.counter );//+ ", agent path = " + tracker.agent.toString());
-        */
-
-        /*
-        return reversePath(tracker.agent);
-        */
     }
 
     /**
@@ -435,7 +389,6 @@ public class Search {
                     openList.add(child);
                 }
             }
-            //System.out.println("(" + x + "," + y + ")");
         } else {
             // Not being used in repeated A* search.
             gridworld[x][y] = curr.g + 1;
