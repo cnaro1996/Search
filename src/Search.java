@@ -4,7 +4,8 @@ public class Search {
 
     public static void main(String[] args){
         int[][] grid = genGrid(10, 0.25f, true);
-        Comparator<Node> nodeComparator = new NodeComparator();
+        // larger = true: favor larger g values, false: favor smaller g values.
+        Comparator<Node> nodeComparator = new NodeComparator(true);
         PriorityQueue<Node> openList = new PriorityQueue<Node>(nodeComparator);
         ArrayList<Node> closedList = new ArrayList<Node>();
         SearchTracker regular = new SearchTracker(null, false, null, 0);
@@ -14,8 +15,8 @@ public class Search {
 
         Type heuristic = Type.CHEBYSHEV;
 
-        Node result1 = repeatedAStarSearch(grid, Direction.FORWARD, heuristic);
-        Node result2 = repeatedAStarSearch(grid, Direction.BACKWARD, heuristic);
+        Node result1 = repeatedAStarSearch(grid, Direction.FORWARD, heuristic, nodeComparator);
+        Node result2 = repeatedAStarSearch(grid, Direction.BACKWARD, heuristic, nodeComparator);
         Node result3 = aStarSearch(grid, openList, closedList, heuristic, regular);
 
         Node result = result1;
@@ -134,13 +135,12 @@ public class Search {
      * failure.
      */
     public static Node repeatedAStarSearch(int[][] gridworld, Direction direction,
-                                           Type heuristic) {
+                                           Type heuristic, Comparator<Node> nodeComparator) {
         // Create a duplicate gridworld object with no information on blocked spaces.
         // Update this object as the agent discovers blocked spaces.
         int goal;
         int dim = gridworld.length-1;
         int[][] agentWorld = new int[gridworld.length][gridworld.length];
-        Comparator<Node> nodeComparator = new NodeComparator();
         PriorityQueue<Node> openList = new PriorityQueue<Node>(nodeComparator);
         ArrayList<Node> closedList = new ArrayList<Node>();
         SearchTracker t = new SearchTracker(direction, true, null, 0);
@@ -173,7 +173,6 @@ public class Search {
             temp = aStarSearch(agentWorld,
                     openList, closedList, heuristic, t);
             temp.search = t.counter;
-            //System.out.println(temp); // Debugging statement.
             presumedPath = reversePath(temp);
             if(openList.isEmpty()) { // Failure.
                 break;
@@ -233,7 +232,7 @@ public class Search {
      * the path as is.
      *
      * @param path
-     * @return
+     * @return The reversed path
      */
     public static Node reversePath(Node path) {
         if(path == null) { // Null pointer agent
