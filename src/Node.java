@@ -45,8 +45,8 @@ public class Node {
             return "x = " + x + ", y = " + y + ", Not solvable.";
         }
         int count = 0;
-        String result = "x: " + x + ", y: " + y + ", g: " + g + ", h: " + h + ", f " + f +
-                ", \npath: ";
+        String result = //"x: " + x + ", y: " + y + ", g: " + g + ", h: " + h + ", f " + f +
+                ", \ntree: ";
         result += "(" + this.x + "," + this.y + "), ";
         Node ptr = tree;
         while(ptr != null) {
@@ -57,7 +57,7 @@ public class Node {
                 result += "\n";
             }
         }
-        result += "\nPath length: " + count;
+        result += "\nPath length: " + (count+1);
         return result;
     }
 }

@@ -3,7 +3,7 @@ import java.util.*;
 public class Search {
 
     public static void main(String[] args){
-        int[][] grid = genGrid(25, 0.20f, true);
+        int[][] grid = genGrid(10, 0.25f, true);
         Comparator<Node> nodeComparator = new NodeComparator();
         PriorityQueue<Node> openList = new PriorityQueue<Node>(nodeComparator);
         ArrayList<Node> closedList = new ArrayList<Node>();
@@ -11,12 +11,11 @@ public class Search {
 
         printGrid(grid);
 
-        Node result = repeatedAStarSearch(grid, Direction.FORWARD, Type.CHEBYSHEV);
+        Node result = repeatedAStarSearch(grid, Direction.BACKWARD, Type.CHEBYSHEV);
 
         //Node result = aStarSearch(grid, openList, closedList, Type.CHEBYSHEV,
         //      regular);
-        //printGrid(grid, result);
-        System.out.println("test");
+        printGrid(grid, result);
         System.out.print(result.toString() + ", Heuristic: " + Type.CHEBYSHEV.toString());
     }
 
@@ -74,6 +73,9 @@ public class Search {
      * draws the path of the agent Node traveled (marked with X).
      */
     public static void printGrid(int[][] gridworld, Node agent){
+        if(agent.x < 0 || agent.y < 0) {
+            return;
+        }
 
         // Create a copy of the gridworld so we don't modify the original.
         int[][] gridworld1 = new int[gridworld.length][gridworld.length];
@@ -144,21 +146,22 @@ public class Search {
         if(direction == Direction.FORWARD) {
             t.agent = new Node(0, 0, 0,
                     heuristicCalc(heuristic, 0, 0, dim, dim), null);
+            t.path = new Node(0, 0, 0,
+                    heuristicCalc(heuristic, 0, 0, dim, dim), null);
             goal = dim;
         } else { // BACKWARD
             t.agent = new Node(dim, dim, 0,
                     heuristicCalc(heuristic, dim, dim, 0, 0), null);
+            t.path = new Node(dim, dim, 0,
+                    heuristicCalc(heuristic, dim, dim, 0, 0), null);
             goal = 0;
         }
 
-
         Node temp;
-        // Begin searching.
-        while(t.agent.x != goal && t.agent.y != goal) {
-            System.out.println("Agent position: " + t.agent.toString());
+        while(!t.finished) {
             t.counter ++;
             t.agent.search = t.counter;
-            t.agent.g = 0; // This statement might not be needed.
+            t.agent.g = 0;
             agentWorld[t.agent.x][t.agent.y] = 0;
             agentWorld[goal][goal] = Integer.MAX_VALUE;
             closedList.clear();
@@ -166,19 +169,19 @@ public class Search {
             temp = aStarSearch(agentWorld,
                     openList, closedList, heuristic, t);
             temp.search = t.counter;
-            System.out.println(temp.toString());
+            //System.out.println(temp); // Debugging statement.
             presumedPath = reversePath(temp);
-            //System.out.println(presumedPath.toString());
-             // clear() statements to before temp assignment.
             if(openList.isEmpty()) { // Failure.
                 break;
             }
-            //t.agent = moveAgent(t, temp, agentWorld, gridworld);
             t.agent = moveAgent(t, presumedPath, agentWorld, gridworld);
-            System.out.println("___________________________");
+            System.out.println("Current counter: " + t.counter);
+            //System.out.println("Current agent tree: " + t.agent.toString());
+            System.out.println("------------------------------------");
 
         }
-        return t.agent;
+        return (t.agent.x == goal && t.agent.y == goal)? t.path :
+                new Node(-1,-1, -1, -1, null);
     }
 
     /**
@@ -195,36 +198,82 @@ public class Search {
      */
     public static Node moveAgent(SearchTracker tracker, Node presumedPath, int[][] agentWorld,
                                  int[][] gridworld) {
-        tracker.agent = reversePath(tracker.agent);
+        boolean finished = true;
         System.out.println("Move agent, Presumed Path " + presumedPath.toString());
         Node ptr = presumedPath;
         while(ptr.tree != null){
             if(gridworld[ptr.tree.x][ptr.tree.y] == -1) {
                 agentWorld[ptr.tree.x][ptr.tree.y] = -1;
+                finished = false;
                 ptr.tree = null;
                 break;
             } else {
                 ptr = ptr.tree;
             }
         }
-        System.out.println("Made it to moveAgent part 2");
-        // wtf is this part of the code doing.. try removing the while loop
-        // it's traveling to the end of the linked list.
+
+        // Update whether the agent has reached the goal.
+        if(finished) tracker.finished = true;
+
+        // Debugging statement.
+        System.out.println("Current agent travel path: " + tracker.path.toString());
+        System.out.println("Current new path segment: " + presumedPath.toString());
+
+        // Update agent's current path if it's not the same spot.
+        //if(presumedPath.x == tracker.agent.x &&
+        //        presumedPath.y == tracker.agent.y &&
+        //        presumedPath.tree != null) {
+            Node pptr = tracker.path;
+            while (pptr.tree != null &&
+                    !(pptr.x == presumedPath.x && pptr.y == presumedPath.y)){
+                pptr = pptr.tree;
+            }
+            //tracker.path.tree = presumedPath.tree;
+            pptr.tree = presumedPath.tree;
+        //}
+
+        // Debugging statement.
+        System.out.println("New agent travel path: " + tracker.path.toString());
+
+        // Update agent's new position.
+        tracker.agent = ptr;
+
+        // Debugging while loop. Remove when code is working.
+        /*
+        ptr = tracker.path;
+        while(ptr.tree != null) {
+            System.out.println("(" + ptr.x + "," + ptr.y + ")");
+            try{
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                return null;
+            }
+            ptr = ptr.tree;
+        }
+        System.out.println("(" + ptr.x + "," + ptr.y + ")");
+        System.out.println(); // Debugging statement.
+        */
+        return tracker.agent;
+
+
+        /*
+        System.out.println("Moved agent.");
         ptr = tracker.agent;
         while(ptr.tree != null) {
             ptr = ptr.tree;
         }
         ptr.tree = presumedPath.tree;
-        //tracker.agent = reversePath(tracker.agent);
-        System.out.println("reverse completed. move completed.");
         System.out.println("_____________________");
+        System.out.println("counter = " + tracker.counter );//+ ", agent path = " + tracker.agent.toString());
+        */
+
+        /*
         return reversePath(tracker.agent);
+        */
     }
 
     /**
      * Returns a tree path in reverse order.
-     *
-     * BUG IN THIS METHOD CAUSING INFINITE LOOP
      *
      * If the path tree is null, the aStarSearch algorithm failed and this method will return
      * the path as is.
@@ -233,33 +282,32 @@ public class Search {
      * @return
      */
     public static Node reversePath(Node path) {
-        if(path == null) {
+        if(path == null) { // Null pointer agent
             return null;
         } else {
             //Reverse the path order.
             Stack<Node> temp = new Stack<Node>();
             temp.push(path);
             Node ptr = path.tree;
-            path.tree = null;
             if(ptr != null){
                 while(ptr.tree != null) {
-                    path = ptr.tree;
                     temp.push(ptr);
-                    ptr.tree = null;
-                    ptr = path;
+                    ptr = ptr.tree;
                 }
                 temp.push(ptr);
             } else {
                 return temp.pop();
             }
-            path = temp.pop();
-            ptr = path;
+
+            // Reconstruct the path.
+            ptr = temp.pop();
+            path = ptr;
             while(!temp.empty()) {
                 ptr.tree = temp.pop();
                 ptr = ptr.tree;
             }
-            //System.out.println(ptr.toString() + "Reverse."); // NEVER REACHED.
-            return ptr;
+            ptr.tree = null;
+            return path;
         }
     }
 
@@ -325,7 +373,7 @@ public class Search {
                 if(temp == null){
                     return start;
                 } else {
-                    condition = gridworld[goal][goal] > openList.peek().f;
+                    condition = gridworld[goal][goal] > temp.f;
                 }
             } else {
                 condition = openList.size() != 0 ;
@@ -344,7 +392,7 @@ public class Search {
                                      int[][] gridworld, SearchTracker tracker) {
         int x = curr.x;
         int y = curr.y;
-        int goal = tracker.direction == Direction.FORWARD ? gridworld.length-1 : 0;
+        int goal = tracker.direction == Direction.BACKWARD ? 0 : gridworld.length-1;
 
         // Initialize new coordinates based on the direction to explore.
         switch(direction) {

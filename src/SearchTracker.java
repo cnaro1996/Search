@@ -4,6 +4,8 @@ public class SearchTracker {
     boolean repeated;
     Node agent;
     int counter;
+    boolean finished = false;
+    Node path = null;
 
     /**
      *
